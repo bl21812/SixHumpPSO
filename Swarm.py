@@ -49,7 +49,7 @@ class Swarm:
         # Run search
         self.iter = 0
 
-        while self.iter < 500:  # set max of 500 iterations
+        while self.iter < 100:  # set max of 100 iterations
             bestGen = [0, 0]  # temp for best in a gen
             bestGenVal = 99999  # value for the above
             fitnessSum = 0.0
@@ -97,7 +97,7 @@ class Swarm:
         minW = 0.1
         self.k = 2 / abs(2 - self.phi - math.sqrt(pow(self.phi, 2) - 4 * self.phi))
 
-        while self.iter < 500:  # set max of 500 iterations
+        while self.iter < 100:  # set max of 100 iterations
             bestGen = [0, 0]  # temp for best in a gen
             bestGenVal = 99999  # value for the above
             fitnessSum = 0.0
@@ -141,7 +141,7 @@ class Swarm:
     def runConstriction(self):
         self.iter = 0
         self.k = 2 / abs(2 - self.phi - math.sqrt(pow(self.phi, 2) - 4 * self.phi))
-        while self.iter < 500:  # set max of 500 iterations
+        while self.iter < 100:  # set max of 100 iterations
             bestGen = [0, 0]  # temp for best in a gen
             bestGenVal = 99999  # value for the above
             fitnessSum = 0.0
@@ -191,7 +191,7 @@ class Swarm:
         currBest = self.pop[0][0]
         maxW = 1.0
         minW = 0.1
-        while self.iter < 300:  # set max of 500 self.iterations
+        while self.iter < 100:  # set max of 100 iterations
 
             # Reset appropriate values
             prevBestVal = currBestVal
