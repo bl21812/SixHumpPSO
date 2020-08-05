@@ -9,15 +9,15 @@ swarm1 = Swarm(popSize, c1, c2)
 swarm2 = Swarm(popSize, c1, c2)
 swarm3 = Swarm(popSize, c1, c2)
 
-swarm1.runConstriction()
-swarm2.runConstriction()
-swarm3.runConstriction()
+swarm1.runBasic()
+swarm2.runBasic()
+swarm3.runBasic()
 
 print(swarm1.bestSolValue, swarm1.bestSol)
 print(swarm2.bestSolValue, swarm2.bestSol)
 print(swarm3.bestSolValue, swarm3.bestSol)
 
-gens = [i for i in range(1, swarm1.iter + 1)]
+gens = [i for i in range(1, swarm1.iter+1)]
 
 fig, (a1, a2) = plt.subplots(2)
 a1.plot(gens, swarm1.bestPerGen, 'r-', gens, swarm2.bestPerGen, 'g-', gens, swarm3.bestPerGen, 'b-')

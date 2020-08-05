@@ -13,6 +13,11 @@ class Particle:
         self.neighbours = [] # matrix of neighbours (social neighbours)
         self.nbest = self.pbest
         self.nbestVal = self.pbestVal
+        self.p = 1
+        self.Es = 15
+        self.Ef = 5
+        self.successes = 0
+        self.failures = 0
 
     # Returns vector [x, y, val] of neighbourhood best sol
     def nbestFind(self):
@@ -45,6 +50,41 @@ class Particle:
         r2 = random.random()
         self.vel[1] = self.w * self.vel[1] + c1 * r1 * (self.pbest[1] - self.pos[1]) + c2 * r2 * (self.nbest[1] - self.pos[1])
 
+    def velUpdateBasic(self, c1, c2):
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[0] = self.w * self.vel[0] + c1 * r1 * (self.pbest[0] - self.pos[0]) + c2 * r2 * (
+                    self.nbest[0] - self.pos[0])
+
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[1] = self.w * self.vel[1] + c1 * r1 * (self.pbest[1] - self.pos[1]) + c2 * r2 * (
+                    self.nbest[1] - self.pos[1])
+
+    def velUpdateGCPSO(self, gbest):
+
+        oldVel = self.vel
+
+        # Adjust p as necessary
+        if self.successes > self.Es:
+            self.p *= 2.0
+        elif self.failures > self.Ef:
+            self.p *= 0.5
+
+        # Update velocity
+        r = random.random()
+        self.vel[0] = -1*self.pos[0] + gbest[0] + self.w*self.vel[0] + self.p*(1 - 2*r)
+
+        r = random.random()
+        self.vel[1] = -1 * self.pos[1] + gbest[1] + self.w*self.vel[1] + self.p * (1 - 2 * r)
+
+        return oldVel
+
+    def posUpdateGCPSO(self, gbest, oldVel):
+        r = random.random()
+        self.pos[0] = gbest[0] + self.w*oldVel[0] + self.p*(1 - 2*r)
+        r = random.random()
+        self.pos[1] = gbest[1] + self.w*oldVel[1] + self.p * (1 - 2 * r)
 
     def posUpdate(self):
         self.pos[0] += self.vel[0]
