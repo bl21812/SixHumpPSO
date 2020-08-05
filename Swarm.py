@@ -19,16 +19,6 @@ class Particle:
         self.successes = 0
         self.failures = 0
 
-    # Returns vector [x, y, val] of neighbourhood best sol
-    def nbestFind(self):
-        temp = self.pbest
-        tempVal = self.pbestVal
-        for neighbour in self.neighbours:
-            if neighbour.pbestVal < tempVal:
-                tempVal = neighbour.pbestVal
-                temp = neighbour.pbest
-        return [temp, tempVal]
-
     # Updates velocity with constriction factor method (no return)
     def velUpdateConstriction(self, c1, c2, k, gbest):
         r1 = random.random()
@@ -86,6 +76,11 @@ class Particle:
         r = random.random()
         self.pos[1] = gbest[1] + self.w*oldVel[1] + self.p * (1 - 2 * r)
 
+        tempVal = self.evalSelf()  # Set pbest if applicable
+        if tempVal < self.pbestVal:
+          self.pbestVal = tempVal
+          self.pbest = self.pos
+
     def posUpdate(self):
 
         self.pos[0] += self.vel[0]  # x position
@@ -105,6 +100,16 @@ class Particle:
           self.pbestVal = tempVal
           self.pbest = self.pos
 
+    # Returns vector [x, y, val] of neighbourhood best sol
+    def nbestFind(self):
+        temp = self.pbest
+        tempVal = self.pbestVal
+        for neighbour in self.neighbours:
+            if neighbour.pbestVal < tempVal:
+                tempVal = neighbour.pbestVal
+                temp = neighbour.pbest
+        return [temp, tempVal]
+
     # Updates neighbourhood best, based on caller's state
     def nbestUpdate(self):
         neighbourBest = self.nbestFind()
@@ -117,9 +122,6 @@ class Particle:
             if self.pbestVal < neighbour.nbestVal:
                 neighbour.nbestVal = self.pbestVal
                 neighbour.nbest = self.pbest
-
-    def inerUpdate(self):
-        print()
 
     # Evaluate value of particle's position
     def evalSelf(self):
