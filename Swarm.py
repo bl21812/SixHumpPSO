@@ -1,269 +1,134 @@
 import math
-from Particle import Particle
 import random
-import numpy
 
-class Swarm:
+class Particle:
 
-    # Initialize swarm as square matrix (will truncate if population not perfect square)
-    def __init__(self, popSize, c1, c2):
-        length = int(math.sqrt(popSize))
-        self.pop = numpy.empty([length, length], dtype=Particle)
-        self.c1 = c1
-        self.c2 = c2
-        phi = c1 + c2
-        self.k = 2 / abs(2 - phi - math.sqrt(pow(phi, 2) - 4 * phi))
+    def __init__(self, pos, vel, w):
+        self.pos = pos
+        self.vel = vel
+        self.initW = w  # initial inertia constant
+        self.w = w  # inertia constant
+        self.pbestVal = self.evalSelf()  # value of best solution
+        self.pbest = pos  # best solution
+        self.neighbours = [] # matrix of neighbours (social neighbours)
+        self.nbest = self.pbest
+        self.nbestVal = self.pbestVal
+        self.p = 1
+        self.Es = 15
+        self.Ef = 5
+        self.successes = 0
+        self.failures = 0
 
-        self.bestPerGen = []  # Stores value of best sol per generation
-        self.bestSol = [0, 0]
-        self.bestSolValue = 99999
-        self.averagePerGen = []  # Stores average fitness per generation
+    # Returns vector [x, y, val] of neighbourhood best sol
+    def nbestFind(self):
+        temp = self.pbest
+        tempVal = self.pbestVal
+        for neighbour in self.neighbours:
+            if neighbour.pbestVal < tempVal:
+                tempVal = neighbour.pbestVal
+                temp = neighbour.pbest
+        return [temp, tempVal]
 
-        self.iter = 0
+    # Updates velocity with constriction factor method (no return)
+    def velUpdateConstriction(self, c1, c2, k, gbest):
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[0] = k * math.floor(self.vel[0] + c1 * r1 * (self.pbest[0] - self.pos[0]) + c2 * r2 * (gbest[0] - self.pos[0]))
 
-        for i in range(length): # init pop
-            for j in range(length):
-                tempX = random.random() * 10.0 - 5.0
-                tempY = random.random() * 10.0 - 5.0
-                initW = 0.792
-                self.pop[i][j] = Particle([tempX, tempY], [0, 0], initW)
-        for i in range(length): # init neighbours for pop
-            for j in range(length):
-                self.setNeighbours(i, j, self.pop[i][j])
-        # Set neighbourhood best values
-        for i in range(len(self.pop)):
-            for j in range(len(self.pop)):
-                self.pop[i][j].nbestUpdate()
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[1] = k * math.floor(self.vel[1] + c1 * r1 * (self.pbest[1] - self.pos[1]) + c2 * r2 * (gbest[1] - self.pos[1]))
 
-    # Set neighbours of a particle
-    def setNeighbours(self, i, j, ind):
-        if i > 0:
-            ind.neighbours.append(self.pop[i-1][j])
-        if i < (len(self.pop) - 1):
-            ind.neighbours.append(self.pop[i+1][j])
-        if j > 0:
-            ind.neighbours.append(self.pop[i][j-1])
-        if j < (len(self.pop) - 1):
-            ind.neighbours.append(self.pop[i][j+1])
+    def velUpdateInertia(self, c1, c2, wmax, wmin, iter, iterMax):
+        self.w = wmax - (wmax - wmin) * iter / iterMax
 
-    # Returns best solution in neighbourhood given indices of individual in pop matrix
-    def neighbourBest(self, i, j):
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[0] = self.w * self.vel[0] + c1 * r1 * (self.pbest[0] - self.pos[0]) + c2 * r2 * (self.nbest[0] - self.pos[0])
+
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[1] = self.w * self.vel[1] + c1 * r1 * (self.pbest[1] - self.pos[1]) + c2 * r2 * (self.nbest[1] - self.pos[1])
+
+    def velUpdateBasic(self, c1, c2):
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[0] = self.w * self.vel[0] + c1 * r1 * (self.pbest[0] - self.pos[0]) + c2 * r2 * (
+                    self.nbest[0] - self.pos[0])
+
+        r1 = random.random()
+        r2 = random.random()
+        self.vel[1] = self.w * self.vel[1] + c1 * r1 * (self.pbest[1] - self.pos[1]) + c2 * r2 * (
+                    self.nbest[1] - self.pos[1])
+
+    def velUpdateGCPSO(self, gbest):
+
+        oldVel = self.vel
+
+        # Adjust p as necessary
+        if self.successes > self.Es:
+            self.p *= 2.0
+        elif self.failures > self.Ef:
+            self.p *= 0.5
+
+        # Update velocity
+        r = random.random()
+        self.vel[0] = -1*self.pos[0] + gbest[0] + self.w*self.vel[0] + self.p*(1 - 2*r)
+
+        r = random.random()
+        self.vel[1] = -1 * self.pos[1] + gbest[1] + self.w*self.vel[1] + self.p * (1 - 2 * r)
+
+        return oldVel
+
+    def posUpdateGCPSO(self, gbest, oldVel):
+        r = random.random()
+        self.pos[0] = gbest[0] + self.w*oldVel[0] + self.p*(1 - 2*r)
+        r = random.random()
+        self.pos[1] = gbest[1] + self.w*oldVel[1] + self.p * (1 - 2 * r)
+
+    def posUpdate(self):
+
+        self.pos[0] += self.vel[0]  # x position
+        if self.pos[0] < -5:
+            self.pos[0] = -5
+        elif self.pos[0] > 5:
+            self.pos[0] = 5
+
+        self.pos[1] += self.vel[1]  # y position
+        if self.pos[1] < -5:
+            self.pos[1] = -5
+        elif self.pos[1] > 5:
+            self.pos[1] = 5
+
+        tempVal = self.evalSelf()  # Set pbest if applicable
+        if tempVal < self.pbestVal:
+          self.pbestVal = tempVal
+          self.pbest = self.pos
+
+    # Updates neighbourhood best, based on caller's state
+    def nbestUpdate(self):
+        neighbourBest = self.nbestFind()
+        self.nbest = [neighbourBest[0][0], neighbourBest[0][1]]
+        self.nbestVal = neighbourBest[1]
+
+    # Updates nbest for all neighbours
+    def nbestUpdateNeighbours(self):
+        for neighbour in self.neighbours:
+            if self.pbestVal < neighbour.nbestVal:
+                neighbour.nbestVal = self.pbestVal
+                neighbour.nbest = self.pbest
+
+    def inerUpdate(self):
         print()
 
-    def runBasic(self):
-        # Run search
-        self.iter = 0
-
-        while self.iter < 500:  # set max of 500 iterations
-            bestGen = [0, 0]  # temp for best in a gen
-            bestGenVal = 99999  # value for the above
-            fitnessSum = 0.0
-            gbest = [0, 0]
-            for i in range(len(self.pop)):
-                for j in range(len(self.pop)):
-                    curr = self.pop[i][j]
-                    curr.velUpdateBasic(self.c1, self.c2)  # Velocity update
-                    curr.posUpdate()  # Position update
-                    # Update neighbourhood best - for this particle and all others in its neighbourhood
-                    curr.nbestUpdate()
-                    curr.nbestUpdateNeighbours()
-                    # Set best in generation
-                    tempVal = curr.evalSelf()
-                    if tempVal < bestGenVal:
-                        bestGenVal = tempVal
-                        bestGen = curr.pos
-                    fitnessSum += tempVal  # for average fitness in gen
-            # Change global best if applicable and set best in gen
-            if bestGenVal < self.bestSolValue:
-                self.bestSol = bestGen
-                self.bestSolValue = bestGenVal
-            self.bestPerGen.append(bestGenVal)
-            self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
-            self.iter += 1
-
-    # Inertia weight
-    def runInerWeight(self):
-        # Run search
-        self.iter = 0
-        maxW = 1.0
-        minW = 0.1
-
-        while self.iter < 500:  # set max of 500 iterations
-            bestGen = [0, 0]  # temp for best in a gen
-            bestGenVal = 99999  # value for the above
-            fitnessSum = 0.0
-            gbest = [0, 0]
-            for i in range(len(self.pop)):
-                for j in range(len(self.pop)):
-                    curr = self.pop[i][j]
-                    curr.velUpdateInertia(self.c1, self.c2, maxW, minW, self.iter, 200)  # Velocity update
-                    curr.posUpdate()  # Position update
-                    # Update neighbourhood best - for this particle and all others in its neighbourhood
-                    curr.nbestUpdate()
-                    curr.nbestUpdateNeighbours()
-                    # Set best in generation
-                    tempVal = curr.evalSelf()
-                    if tempVal < bestGenVal:
-                        bestGenVal = tempVal
-                        bestGen = curr.pos
-                    fitnessSum += tempVal  # for average fitness in gen
-            # Change global best if applicable and set best in gen
-            if bestGenVal < self.bestSolValue:
-                self.bestSol = bestGen
-                self.bestSolValue = bestGenVal
-            self.bestPerGen.append(bestGenVal)
-            self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
-            self.iter += 1
-
-    # Constriction factor
-    def runConstriction(self):
-        self.iter = 0
-        while self.iter < 500:  # set max of 500 iterations
-            bestGen = [0, 0]  # temp for best in a gen
-            bestGenVal = 99999  # value for the above
-            fitnessSum = 0.0
-            gbest = [0, 0]
-            for i in range(len(self.pop)):
-                for j in range(len(self.pop)):
-                    gbest = self.gbestFind()  # Get global best for velocity update
-                    curr = self.pop[i][j]
-                    curr.velUpdateConstriction(self.c1, self.c2, self.k, gbest)  # Velocity update
-                    curr.posUpdate()  # Position update
-                    # Update neighbourhood best - for this particle and all others in its neighbourhood
-                    curr.nbestUpdate()
-                    curr.nbestUpdateNeighbours()
-                    # Set best in generation
-                    tempVal = curr.evalSelf()
-                    if tempVal < bestGenVal:
-                        bestGenVal = tempVal
-                        bestGen = curr.pos
-                    fitnessSum += tempVal  # for average fitness in gen
-            # Change global best if applicable and set best in gen
-            if bestGenVal < self.bestSolValue:
-                self.bestSol = bestGen
-                self.bestSolValue = bestGenVal
-            self.bestPerGen.append(bestGenVal)
-            self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
-            self.iter += 1
-
-
-    # GCPSO
-    def runGC(self):
-        self.iter = 0
-        currBestVal = 99999
-        currBest = self.pop[0][0]
-        maxW = 1.0
-        minW = 0.1
-        while self.iter < 300:  # set max of 500 self.iterations
-
-            # Reset appropriate values
-            prevBestVal = currBestVal
-            prevBest = currBest
-            currBestVal = 99999
-            currBest = self.pop[0][0]
-
-            bestGen = [0, 0]  # temp for best in a gen
-            bestGenVal = 99999  # value for the above
-            fitnessSum = 0.0
-
-            if self.iter == 0:  # first iteration - this is the SAME as inertia weight, since no successes/failures
-
-                # For initial population - set the 'previous best' values for the next iteration to compare to
-                for i in range(len(self.pop)):
-                    for j in range(len(self.pop)):
-                        curr = self.pop[i][j]
-                        tempVal = curr.evalSelf()
-                        if tempVal < currBestVal:
-                            currBestVal = tempVal
-                            currBest = curr
-
-                # Update velocities, positions by inertia weight
-                for i in range(len(self.pop)):
-                    for j in range(len(self.pop)):
-                        curr = self.pop[i][j]
-                        curr.velUpdateInertia(self.c1, self.c2, maxW, minW, self.iter, 200)  # Velocity update
-                        curr.posUpdate()  # Position update
-                        # Update neighbourhood best - for this particle and all others in its neighbourhood
-                        curr.nbestUpdate()
-                        curr.nbestUpdateNeighbours()
-                        # Set best in generation
-                        tempVal = curr.evalSelf()
-                        if tempVal < bestGenVal:
-                            bestGenVal = tempVal
-                            bestGen = curr.pos
-                        fitnessSum += tempVal  # for average fitness in gen
-
-                # Change global best if applicable and set best in gen
-                if bestGenVal < self.bestSolValue:
-                    self.bestSol = bestGen
-                    self.bestSolValue = bestGenVal
-                self.bestPerGen.append(bestGenVal)
-                self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
-                self.iter += 1
-
-            else:  # all non-first iterations
-
-                # Determine the current best
-                for i in range(len(self.pop)):
-                    for j in range(len(self.pop)):
-                        curr = self.pop[i][j]
-                        tempVal = curr.evalSelf()
-                        if tempVal < currBestVal:
-                            currBestVal = tempVal
-                            currBest = curr
-
-                # Compare to previous best, and update appropriate success/failure counter
-                if currBest is prevBest:
-                    if currBestVal == prevBestVal:  # increase failure count if best was stagnant
-                        currBest.successes = 0
-                        currBest.failures += 1
-                    else:  # increase success count if the prev best particle is still the best, but has a dif position
-                        currBest.failures = 0
-                        currBest.successes += 1
-                else:  # Reset counts for previous best if the best particle changed
-                    prevBest.successes = 0
-                    prevBest.failures = 0
-
-                # Update velocities, positions by GCPSO for best particle, and inertia weight for the rest
-                for i in range(len(self.pop)):
-                    for j in range(len(self.pop)):
-                        curr = self.pop[i][j]
-                        if curr is currBest:  # GCPSO update for current best particle
-                            oldVel = curr.velUpdateGCPSO(self.bestSol)
-                            curr.posUpdateGCPSO(self.bestSol, oldVel)
-                        else:  # Inertia weight update for all other particles
-                            curr.velUpdateInertia(self.c1, self.c2, maxW, minW, self.iter, 200)  # Velocity update
-                            curr.posUpdate()  # Position update
-                        # Update neighbourhood best - for this particle and all others in its neighbourhood
-                        curr.nbestUpdate()
-                        curr.nbestUpdateNeighbours()
-                        # Set best in generation
-                        tempVal = curr.evalSelf()
-                        if tempVal < bestGenVal:
-                            bestGenVal = tempVal
-                            bestGen = curr.pos
-                        fitnessSum += tempVal  # for average fitness in gen
-
-                # Change global best if applicable and set best in gen
-                if bestGenVal < self.bestSolValue:
-                    self.bestSol = bestGen
-                    self.bestSolValue = bestGenVal
-                self.bestPerGen.append(bestGenVal)
-                self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
-                self.iter += 1
-
-   # Returns global best solution (not the value with it)
-    def gbestFind(self):
-        tempBestVal = 99999
-        tempBest = [0, 0]
-        for i in range(len(self.pop)):
-            for j in range(len(self.pop)):
-                tempVal = self.pop[i][j].evalSelf()
-                if tempVal < tempBestVal:
-                    tempBest = self.pop[i][j].pos
-        return tempBest
+    # Evaluate value of particle's position
+    def evalSelf(self):
+        x = self.pos[0]
+        y = self.pos[1]
+        temp1 = (4 - 2.1 * pow(x, 2) + pow(x, 4) / 3) * pow(x, 2)
+        temp2 = x * y
+        temp3 = (-4 + 4 * pow(y, 2)) * pow(y, 2)
+        return temp1 + temp2 + temp3
 
     def __str__(self):
-        for i in range(len(self.pop)):
-            for j in range(len(self.pop)):
-                print(self.pop[i][j])
+        return "Position: " + str(self.pos[0]) + ', ' + str(self.pos[1]) + '; ' + "pBest: " + str(self.pbest[0]) + ', ' + str(self.pbest[1]) + ', Value: ' + str(self.pbestVal) + "; " + "nBest: " + str(self.nbest[0]) + ', ' + str(self.nbest[1]) + ", Value: " + str(self.nbestVal) + '\n'
