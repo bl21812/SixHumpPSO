@@ -140,6 +140,7 @@ class Swarm:
     # Constriction factor
     def runConstriction(self):
         self.iter = 0
+        self.k = 2 / abs(2 - self.phi - math.sqrt(pow(self.phi, 2) - 4 * self.phi))
         while self.iter < 500:  # set max of 500 iterations
             bestGen = [0, 0]  # temp for best in a gen
             bestGenVal = 99999  # value for the above
@@ -190,7 +191,6 @@ class Swarm:
         currBest = self.pop[0][0]
         maxW = 1.0
         minW = 0.1
-        self.k = 2 / abs(2 - self.phi - math.sqrt(pow(self.phi, 2) - 4 * self.phi))
         while self.iter < 300:  # set max of 500 self.iterations
 
             # Reset appropriate values
