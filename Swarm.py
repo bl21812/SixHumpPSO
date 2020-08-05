@@ -145,6 +145,7 @@ class Swarm:
             bestGenVal = 99999  # value for the above
             fitnessSum = 0.0
             gbest = [0, 0]
+            currGenVals = []  # Fitnesses for current gen
             for i in range(len(self.pop)):
                 for j in range(len(self.pop)):
                     gbest = self.gbestFind()  # Get global best for velocity update
@@ -159,13 +160,26 @@ class Swarm:
                     if tempVal < bestGenVal:
                         bestGenVal = tempVal
                         bestGen = curr.pos
+                        currGenVals.append(tempVal)
                     fitnessSum += tempVal  # for average fitness in gen
+                    
+            # Add to best per gen
+            if len(self.bestPerGen):
+              if min(currGenVals) < self.bestPerGen[-1]:
+                self.bestPerGen.append(numpy.min(currGenVals))
+              else:
+                self.bestPerGen.append(numpy.min(self.bestPerGen))
+            else:
+              self.bestPerGen.append(numpy.min(currGenVals))
+
             # Change global best if applicable and set best in gen
             if bestGenVal < self.bestSolValue:
                 self.bestSol = bestGen
                 self.bestSolValue = bestGenVal
-            self.bestPerGen.append(bestGenVal)
+
+            # Append to average per gen
             self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
+
             self.iter += 1
 
 
@@ -188,6 +202,7 @@ class Swarm:
             bestGen = [0, 0]  # temp for best in a gen
             bestGenVal = 99999  # value for the above
             fitnessSum = 0.0
+            currGenVals = []  # Fitnesses for current gen
 
             if self.iter == 0:  # first iteration - this is the SAME as inertia weight, since no successes/failures
 
@@ -214,14 +229,26 @@ class Swarm:
                         if tempVal < bestGenVal:
                             bestGenVal = tempVal
                             bestGen = curr.pos
+                            currGenVals.append(tempVal)
                         fitnessSum += tempVal  # for average fitness in gen
+
+                # Add to best per gen
+                if len(self.bestPerGen):
+                  if min(currGenVals) < self.bestPerGen[-1]:
+                    self.bestPerGen.append(numpy.min(currGenVals))
+                  else:
+                    self.bestPerGen.append(numpy.min(self.bestPerGen))
+                else:
+                  self.bestPerGen.append(numpy.min(currGenVals))
 
                 # Change global best if applicable and set best in gen
                 if bestGenVal < self.bestSolValue:
                     self.bestSol = bestGen
                     self.bestSolValue = bestGenVal
-                self.bestPerGen.append(bestGenVal)
+
+                # Append to average per gen
                 self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
+
                 self.iter += 1
 
             else:  # all non-first iterations
@@ -265,14 +292,26 @@ class Swarm:
                         if tempVal < bestGenVal:
                             bestGenVal = tempVal
                             bestGen = curr.pos
+                            currGenVals.append(tempVal)
                         fitnessSum += tempVal  # for average fitness in gen
+
+                # Add to best per gen
+                if len(self.bestPerGen):
+                  if min(currGenVals) < self.bestPerGen[-1]:
+                    self.bestPerGen.append(numpy.min(currGenVals))
+                  else:
+                    self.bestPerGen.append(numpy.min(self.bestPerGen))
+                else:
+                  self.bestPerGen.append(numpy.min(currGenVals))
 
                 # Change global best if applicable and set best in gen
                 if bestGenVal < self.bestSolValue:
                     self.bestSol = bestGen
                     self.bestSolValue = bestGenVal
-                self.bestPerGen.append(bestGenVal)
+
+                # Append to average per gen
                 self.averagePerGen.append(fitnessSum / pow(len(self.pop), 2))
+
                 self.iter += 1
 
    # Returns global best solution (not the value with it)
