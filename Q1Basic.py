@@ -1,9 +1,9 @@
 from Swarm import Swarm
 import matplotlib.pyplot as plt
 
-c1 = 2.05
-c2 = 2.05
-popSize = 25
+c1 = 1.4944
+c2 = 1.4944
+popSize = 64
 
 swarm1 = Swarm(popSize, c1, c2)
 swarm2 = Swarm(popSize, c1, c2)
