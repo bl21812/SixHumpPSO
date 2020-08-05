@@ -105,7 +105,7 @@ class Swarm:
             for i in range(len(self.pop)):
                 for j in range(len(self.pop)):
                     curr = self.pop[i][j]
-                    curr.velUpdateInertia(self.c1, self.c2, maxW, minW, self.iter, 200)  # Velocity update
+                    curr.velUpdateInertia(self.c1, self.c2, maxW, minW, self.iter, 100)  # Velocity update
                     curr.posUpdate()  # Position update
                     # Update neighbourhood best - for this particle and all others in its neighbourhood
                     curr.nbestUpdate()
