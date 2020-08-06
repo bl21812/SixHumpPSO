@@ -99,7 +99,6 @@ class Particle:
             self.pos[1] = 5
 
     # Updates neighbourhood best, based on caller's state
-    # DONT NEED THIS
     def nbestUpdate(self):
         neighbourBest = self.nbestFind()
         self.nbest = [neighbourBest[0][0], neighbourBest[0][1]]
@@ -111,9 +110,6 @@ class Particle:
             if self.pbestVal < neighbour.nbestVal:
                 neighbour.nbestVal = self.pbestVal
                 neighbour.nbest = self.pbest
-
-    def inerUpdate(self):
-        print()
 
     # Evaluate value of particle's position
     def evalSelf(self):
